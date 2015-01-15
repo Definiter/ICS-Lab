@@ -1,0 +1,60 @@
+                      | # Hao Wang 1300012703
+  0x000:              |     .pos    0
+  0x000:              | init:
+  0x000: 30f400020000 |     irmovl  Stack, %esp
+  0x006: 30f500020000 |     irmovl  Stack, %ebp
+  0x00c: 30f203000000 |     irmovl  $3, %edx
+  0x012: a02f         |     pushl   %edx   
+  0x014: 30f238000000 |     irmovl  dest, %edx
+  0x01a: a02f         |     pushl   %edx
+  0x01c: 30f22c000000 |     irmovl  src, %edx
+  0x022: a02f         |     pushl   %edx
+  0x024: 8044000000   |     call    copy_block
+  0x029: 00           |     halt
+                      | 
+  0x02c:              |     .align 4
+                      | # Source Block
+  0x02c:              | src:
+  0x02c: 0a000000     |     .long   0x00a
+  0x030: b0000000     |     .long   0x0b0
+  0x034: 000c0000     |     .long   0xc00
+                      | # Destination Block
+  0x038:              | dest:
+  0x038: 11010000     |     .long   0x111
+  0x03c: 22020000     |     .long   0x222
+  0x040: 33030000     |     .long   0x333
+                      | 
+  0x044:              | copy_block:
+  0x044: a05f         |     pushl   %ebp
+  0x046: 2045         |     rrmovl  %esp, %ebp
+  0x048: a03f         |     pushl   %ebx
+  0x04a: a07f         |     pushl   %edi
+  0x04c: a06f         |     pushl   %esi
+  0x04e: 30f000000000 |     irmovl  $0, %eax
+  0x054: 506510000000 |     mrmovl  16(%ebp), %esi # %esi = len
+  0x05a: 6266         |     andl    %esi, %esi
+  0x05c: 7194000000   |     jle     End    
+  0x061: 501508000000 |     mrmovl  8(%ebp), %ecx  # %ecx = src
+  0x067: 50250c000000 |     mrmovl  12(%ebp), %edx # %edx = dest
+  0x06d:              | Loop:
+  0x06d: 30f304000000 |     irmovl  $4, %ebx
+  0x073: 507100000000 |     mrmovl  (%ecx), %edi
+  0x079: 6031         |     addl    %ebx, %ecx
+  0x07b: 407200000000 |     rmmovl  %edi, (%edx)
+  0x081: 6032         |     addl    %ebx, %edx
+  0x083: 6370         |     xorl    %edi, %eax
+  0x085: 30f301000000 |     irmovl  $1, %ebx
+  0x08b: 6136         |     subl    %ebx, %esi
+  0x08d: 6266         |     andl    %esi, %esi
+  0x08f: 766d000000   |     jg      Loop
+  0x094:              | End:
+  0x094: b06f         |     popl    %esi
+  0x096: b07f         |     popl    %edi
+  0x098: b03f         |     popl    %ebx
+  0x09a: 2054         |     rrmovl  %ebp, %esp
+  0x09c: b05f         |     popl    %ebp
+  0x09e: 90           |     ret
+                      | 
+  0x200:              |     .pos    0x200
+  0x200:              | Stack:
+                      | 

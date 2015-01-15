@@ -1,0 +1,76 @@
+                      | # Hao Wang 1300012703 Homework 7
+                      | 
+  0x000:              |     .pos    0
+  0x000:              | init:
+  0x000: 30f400100000 |     irmovl Stack, %esp
+  0x006: 30f500100000 |     irmovl Stack, %ebp
+  0x00c: 30f208000000 |     irmovl $8, %edx
+  0x012: a02f         |     pushl  %edx
+  0x014: 30f224000000 |     irmovl array, %edx
+  0x01a: a02f         |     pushl  %edx
+  0x01c: 8044000000   |     call bubble_a
+  0x021: 00           |     halt    
+                      | 
+  0x024:              | .align 4
+  0x024:              | array:
+  0x024: 09000000     |     .long  0x9
+  0x028: 09000000     |     .long  0x9
+  0x02c: 07000000     |     .long  0x7
+  0x030: 08000000     |     .long  0x8
+  0x034: 06000000     |     .long  0x6
+  0x038: 05000000     |     .long  0x5
+  0x03c: 04000000     |     .long  0x4
+  0x040: 02000000     |     .long  0x2
+                      | 
+  0x044:              | bubble_a:
+  0x044: a05f         |     pushl   %ebp
+  0x046: 2045         |     rrmovl  %esp, %ebp
+  0x048: a03f         |     pushl   %ebx
+  0x04a: 50150c000000 |     mrmovl  12(%ebp), %ecx      # %ecx = count = last
+  0x050: 30f201000000 |     irmovl  $1, %edx
+  0x056: 6121         |     subl    %edx, %ecx          # %ecx = last = count - 1
+  0x058: 6211         |     andl    %ecx, %ecx
+  0x05a: 71ca000000   |     jle     End1                # outer loop first judge
+  0x05f:              | Loop1:
+  0x05f: 30f700000000 |     irmovl  $0, %edi            # %edi = 0 = i
+  0x065: 500508000000 |     mrmovl  8(%ebp), %eax       # %eax = data = p
+  0x06b: 2073         |     rrmovl  %edi, %ebx
+  0x06d: 6113         |     subl    %ecx, %ebx
+  0x06f: 75bb000000   |     jge     End2                # inner loop first judge
+  0x074:              | Loop2:
+  0x074: 2003         |     rrmovl  %eax, %ebx
+  0x076: 30f204000000 |     irmovl  $4, %edx
+  0x07c: 6020         |     addl    %edx, %eax          # %eax += 4 
+  0x07e: 506000000000 |     mrmovl  (%eax), %esi        # %esi = *(p + 1)
+  0x084: 503300000000 |     mrmovl  (%ebx), %ebx        # %ebx = *p
+  0x08a: 2062         |     rrmovl  %esi, %edx          
+  0x08c: 6132         |     subl    %ebx, %edx
+                      |     
+  0x08e: 5020fcffffff |     mrmovl  -4(%eax), %edx      #swap
+  0x094: 2262         |     cmovl   %esi, %edx
+  0x096: 4020fcffffff |     rmmovl  %edx, -4(%eax)
+                      | 
+  0x09c: 502000000000 |     mrmovl  (%eax), %edx
+  0x0a2: 2232         |     cmovl   %ebx, %edx
+  0x0a4: 402000000000 |     rmmovl  %edx, (%eax)
+                      | 
+  0x0aa: 30f201000000 |     irmovl  $1, %edx            
+  0x0b0: 6027         |     addl    %edx, %edi          # i += 1
+  0x0b2: 2073         |     rrmovl  %edi, %ebx          
+  0x0b4: 6113         |     subl    %ecx, %ebx
+  0x0b6: 7274000000   |     jl      Loop2               # i < last
+  0x0bb:              | End2:
+  0x0bb: 30f201000000 |     irmovl  $1, %edx            
+  0x0c1: 6121         |     subl    %edx, %ecx          # last -= 1
+  0x0c3: 6211         |     andl    %ecx, %ecx
+  0x0c5: 765f000000   |     jg      Loop1               # last > 0
+  0x0ca:              | End1:
+  0x0ca: b03f         |     popl    %ebx
+  0x0cc: 2054         |     rrmovl  %ebp, %esp 
+  0x0ce: b05f         |     popl    %ebp
+  0x0d0: 90           |     ret 
+                      | 
+  0x000:              |     .pos 0x1000
+  0x000:              | Stack:
+                      | 
+                      | 

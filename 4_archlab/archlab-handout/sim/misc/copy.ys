@@ -1,0 +1,60 @@
+# Hao Wang 1300012703
+    .pos    0
+init:
+    irmovl  Stack, %esp
+    irmovl  Stack, %ebp
+    irmovl  $3, %edx
+    pushl   %edx   
+    irmovl  dest, %edx
+    pushl   %edx
+    irmovl  src, %edx
+    pushl   %edx
+    call    copy_block
+    halt
+
+    .align 4
+# Source Block
+src:
+    .long   0x00a
+    .long   0x0b0
+    .long   0xc00
+# Destination Block
+dest:
+    .long   0x111
+    .long   0x222
+    .long   0x333
+
+copy_block:
+    pushl   %ebp
+    rrmovl  %esp, %ebp
+    pushl   %ebx
+    pushl   %edi
+    pushl   %esi
+    irmovl  $0, %eax
+    mrmovl  16(%ebp), %esi # %esi = len
+    andl    %esi, %esi
+    jle     End    
+    mrmovl  8(%ebp), %ecx  # %ecx = src
+    mrmovl  12(%ebp), %edx # %edx = dest
+Loop:
+    irmovl  $4, %ebx
+    mrmovl  (%ecx), %edi
+    addl    %ebx, %ecx
+    rmmovl  %edi, (%edx)
+    addl    %ebx, %edx
+    xorl    %edi, %eax
+    irmovl  $1, %ebx
+    subl    %ebx, %esi
+    andl    %esi, %esi
+    jg      Loop
+End:
+    popl    %esi
+    popl    %edi
+    popl    %ebx
+    rrmovl  %ebp, %esp
+    popl    %ebp
+    ret
+
+    .pos    0x200
+Stack:
+

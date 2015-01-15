@@ -1,0 +1,46 @@
+# Hao Wang 1300012703
+    .pos    0
+init:
+    irmovl  Stack, %esp
+    irmovl  Stack, %ebp
+    irmovl  ele1, %edx
+    pushl   %edx   
+    call    rsum_list
+    halt
+
+# Sample linked list
+    .align 4
+ele1:
+    .long   0x00a
+    .long   ele2
+ele2:
+    .long   0x0b0
+    .long   ele3
+ele3:
+    .long   0xc00
+    .long   0
+
+rsum_list:
+    pushl   %ebp
+    rrmovl  %esp, %ebp
+    pushl   %ebx
+    mrmovl  8(%ebp), %ebx
+    irmovl  $0, %eax
+    andl    %ebx, %ebx
+    je      Null 
+Valid:
+    mrmovl  4(%ebx), %edx
+    pushl   %edx
+    call    rsum_list
+    mrmovl  (%ebx), %edx
+    addl    %edx, %eax
+    popl    %edx
+Null:
+    popl    %ebx
+    rrmovl  %ebp, %esp
+    popl    %ebp
+    ret
+
+    .pos    0x200
+Stack:
+

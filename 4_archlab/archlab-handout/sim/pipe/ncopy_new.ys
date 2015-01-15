@@ -1,0 +1,113 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len ints to dst.
+# Return the number of positive ints (>0) contained in src.
+#
+# Include your name and ID here.
+# Hao Wang 1300012703
+#
+# Describe how and why you modified the baseline code.
+# 1. Use iaddl instead of irmovl & addl to save one instruction
+# each time.
+# 2. Unroll loop by 4 to reduce instruction of i++ and jump in loop.
+# 3. Not use successive mrmovl and rmmovl to avoid load / use hazard.
+#
+##################################################################
+# Do not modify this portion
+# Function prologue.
+ncopy:	
+    pushl   %ebp		# Save old frame pointer
+    rrmovl  %esp,%ebp	# Set up new frame pointer
+    pushl   %esi		# Save callee-save regs
+    pushl   %ebx
+    pushl   %edi
+    mrmovl  8(%ebp),%ebx	# %ebx = src
+    mrmovl  12(%ebp),%ecx	# %ecx = dst
+    mrmovl  16(%ebp),%edx	# %edx = len
+
+##################################################################
+# You can modify this portion
+
+Header:
+    xorl    %eax, %eax      # %eax = count = 0
+    andl    %edx, %edx      
+    jle     Done            # len <= 0
+    iaddl   $-4, %edx       # len -= 4
+    jl      Tail1           # len = 1, 2, 3     
+      
+Loop:
+Part1:
+    mrmovl  (%ebx), %esi
+    mrmovl  4(%ebx), %edi
+    rmmovl  %esi, (%ecx)    # dst[i] = src[i]
+    andl    %esi, %esi      
+    jle     Part2
+    iaddl   $1, %eax        # count positive val
+        
+Part2:
+    rmmovl  %edi, 4(%ecx)   # dst[i + 1] = src[i + 1]
+    andl    %edi, %edi
+    jle     Part3
+    iaddl   $1, %eax        # count positive val
+
+Part3:
+    mrmovl  8(%ebx), %esi
+    mrmovl  12(%ebx), %edi
+    rmmovl  %esi, 8(%ecx)   # dst[i + 2] = src[i + 2]
+    andl    %esi, %esi
+    jle     Part4
+    iaddl   $1, %eax        # count positive val
+
+Part4:
+    rmmovl  %edi, 12(%ecx)  # dst[i + 3] = src[i + 3]
+    andl    %edi, %edi
+    jle     Next
+    iaddl   $1, %eax        # count positive val
+
+Next:
+    iaddl   $16, %ebx       # src += 4
+    iaddl   $16, %ecx       # dst += 4
+    iaddl   $-4, %edx       # len -= 4
+    jge     Loop            
+
+Tail1:                      # rest part, len % 4 element
+    iaddl   $3, %edx        
+    jl      Done
+    mrmovl  (%ebx), %esi
+    mrmovl  4(%ebx), %edi
+    rmmovl  %esi, (%ecx)    # dst[i] = srt[i] 
+    andl    %esi, %esi
+    jle     Tail2
+    iaddl   $1, %eax        # count positive val
+
+Tail2:
+    iaddl   $-1, %edx
+    jl      Done
+    rmmovl  %edi, 4(%ecx)   # dst[i + 1] = srt[i + 1]
+    andl    %edi, %edi
+    jle     Tail3
+    iaddl   $1, %eax        # count positive val
+
+Tail3:
+    iaddl   $-1, %edx
+    jl      Done
+    mrmovl  8(%ebx), %esi
+    rmmovl  %esi, 8(%ecx)   # dst[i + 2] = srt[i + 2]
+    andl    %esi, %esi
+    jle     Done
+    iaddl   $1, %eax        # count positive val
+
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	popl %edi               # Restore callee-save registers
+	popl %ebx
+	popl %esi
+	rrmovl %ebp, %esp
+	popl %ebp
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */

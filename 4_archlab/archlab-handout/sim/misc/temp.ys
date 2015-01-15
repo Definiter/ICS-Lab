@@ -1,0 +1,76 @@
+# Hao Wang 1300012703 Homework 7
+
+    .pos    0
+init:
+    irmovl Stack, %esp
+    irmovl Stack, %ebp
+    irmovl $8, %edx
+    pushl  %edx
+    irmovl array, %edx
+    pushl  %edx
+    call bubble_a
+    halt    
+
+.align 4
+array:
+    .long  0x9
+    .long  0x9
+    .long  0x7
+    .long  0x8
+    .long  0x6
+    .long  0x5
+    .long  0x4
+    .long  0x2
+
+bubble_a:
+    pushl   %ebp
+    rrmovl  %esp, %ebp
+    pushl   %ebx
+    mrmovl  12(%ebp), %ecx      # %ecx = count = last
+    irmovl  $1, %edx
+    subl    %edx, %ecx          # %ecx = last = count - 1
+    andl    %ecx, %ecx
+    jle     End1                # outer loop first judge
+Loop1:
+    irmovl  $0, %edi            # %edi = 0 = i
+    mrmovl  8(%ebp), %eax       # %eax = data = p
+    rrmovl  %edi, %ebx
+    subl    %ecx, %ebx
+    jge     End2                # inner loop first judge
+Loop2:
+    rrmovl  %eax, %ebx
+    irmovl  $4, %edx
+    addl    %edx, %eax          # %eax += 4 
+    mrmovl  (%eax), %esi        # %esi = *(p + 1)
+    mrmovl  (%ebx), %ebx        # %ebx = *p
+    rrmovl  %esi, %edx          
+    subl    %ebx, %edx
+    
+    mrmovl  -4(%eax), %edx      #swap
+    cmovl   %esi, %edx
+    rmmovl  %edx, -4(%eax)
+
+    mrmovl  (%eax), %edx
+    cmovl   %ebx, %edx
+    rmmovl  %edx, (%eax)
+
+    irmovl  $1, %edx            
+    addl    %edx, %edi          # i += 1
+    rrmovl  %edi, %ebx          
+    subl    %ecx, %ebx
+    jl      Loop2               # i < last
+End2:
+    irmovl  $1, %edx            
+    subl    %edx, %ecx          # last -= 1
+    andl    %ecx, %ecx
+    jg      Loop1               # last > 0
+End1:
+    popl    %ebx
+    rrmovl  %ebp, %esp 
+    popl    %ebp
+    ret 
+
+    .pos 0x1000
+Stack:
+
+

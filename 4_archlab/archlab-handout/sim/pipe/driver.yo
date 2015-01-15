@@ -1,0 +1,705 @@
+                      | #######################################################################
+                      | # Test for copying block of size 256;
+                      | #######################################################################
+  0x000:              | 	.pos 0
+  0x000: 30f4d8090000 | main:	irmovl Stack, %esp  	# Set up stack pointer
+  0x006: 30f5d8090000 | 	irmovl Stack, %ebp  	# Set up base pointer
+                      | 
+                      | 	# Set up arguments for copy function and then invoke it
+  0x00c: 30f000010000 | 	irmovl $256, %eax		# src and dst have 256 elements
+  0x012: a00f         | 	pushl %eax
+  0x014: 30f094050000 | 	irmovl dest, %eax	# dst array
+  0x01a: a00f         | 	pushl %eax
+  0x01c: 30f084010000 | 	irmovl src, %eax	# src array
+  0x022: a00f         | 	pushl %eax
+  0x024: 802f000000   | 	call ncopy		 
+  0x029: 8093000000   | 	call check	        # Call checker code
+  0x02e: 00           | 	halt                    # should halt with 0xaaaa in %eax
+  0x02f:              | StartFun:
+                      | #/* $begin ncopy-ys */
+                      | ##################################################################
+                      | # ncopy.ys - Copy a src block of len ints to dst.
+                      | # Return the number of positive ints (>0) contained in src.
+                      | #
+                      | # Include your name and ID here.
+                      | #
+                      | # Describe how and why you modified the baseline code.
+                      | #
+                      | ##################################################################
+                      | # Do not modify this portion
+                      | # Function prologue.
+  0x02f: a05f         | ncopy:	pushl %ebp		# Save old frame pointer
+  0x031: 2045         | 	rrmovl %esp,%ebp	# Set up new frame pointer
+  0x033: a06f         | 	pushl %esi		# Save callee-save regs
+  0x035: a03f         | 	pushl %ebx
+  0x037: a07f         | 	pushl %edi
+  0x039: 503508000000 | 	mrmovl 8(%ebp),%ebx	# src
+  0x03f: 502510000000 | 	mrmovl 16(%ebp),%edx	# len
+  0x045: 50150c000000 | 	mrmovl 12(%ebp),%ecx	# dst
+                      | 
+                      | ##################################################################
+                      | # You can modify this portion
+                      | 	# Loop header
+  0x04b: 6300         | 	xorl %eax,%eax		# count = 0;
+  0x04d: 6222         | 	andl %edx,%edx		# len <= 0?
+  0x04f: 7188000000   | 	jle Done		# if so, goto Done:
+                      | 
+  0x054: 506300000000 | Loop:	mrmovl (%ebx), %esi	# read val from src...
+  0x05a: 406100000000 | 	rmmovl %esi, (%ecx)	# ...and store it to dst
+  0x060: 6266         | 	andl %esi, %esi		# val <= 0?
+  0x062: 716f000000   | 	jle Npos		# if so, goto Npos:
+  0x067: 30f701000000 | 	irmovl $1, %edi
+  0x06d: 6070         | 	addl %edi, %eax		# count++
+  0x06f: 30f701000000 | Npos:	irmovl $1, %edi
+  0x075: 6172         | 	subl %edi, %edx		# len--
+  0x077: 30f704000000 | 	irmovl $4, %edi
+  0x07d: 6073         | 	addl %edi, %ebx		# src++
+  0x07f: 6071         | 	addl %edi, %ecx		# dst++
+  0x081: 6222         | 	andl %edx,%edx		# len > 0?
+  0x083: 7654000000   | 	jg Loop			# if so, goto Loop:
+                      | ##################################################################
+                      | # Do not modify the following section of code
+                      | # Function epilogue.
+  0x088:              | Done:
+  0x088: b07f         | 	popl %edi               # Restore callee-save registers
+  0x08a: b03f         | 	popl %ebx
+  0x08c: b06f         | 	popl %esi
+  0x08e: 2054         | 	rrmovl %ebp, %esp
+  0x090: b05f         | 	popl %ebp
+  0x092: 90           | 	ret
+                      | ##################################################################
+                      | # Keep the following label at the end of your function
+  0x093:              | End:
+                      | #/* $end ncopy-ys */
+  0x093:              | EndFun:
+                      | #################################################################### 
+                      | # Epilogue code for the correctness testing driver
+                      | ####################################################################
+                      | 
+                      | # This is the correctness checking code.
+                      | # It checks:
+                      | #   1. %eax has 140.  Set %eax to 0xbbbb if not.
+                      | #   2. The total length of the code is less than or equal to 1000.
+                      | #      Set %eax to 0xcccc if not.
+                      | #   3. The source data was copied to the destination.
+                      | #      Set %eax to 0xdddd if not.
+                      | #   4. The words just before and just after the destination region
+                      | #      were not corrupted.  Set %eax to 0xeeee if not.
+                      | # If all checks pass, then sets %eax to 0xaaaa
+  0x093:              | check:
+  0x093: a05f         | 	pushl %ebp
+  0x095: 2045         | 	rrmovl %esp,%ebp
+  0x097: a06f         | 	pushl %esi
+  0x099: a03f         | 	pushl %ebx
+  0x09b: a07f         | 	pushl %edi
+                      | 	# Return value test
+  0x09d: 30f28c000000 | 	irmovl $140,%edx
+  0x0a3: 6120         | 	subl %edx,%eax
+  0x0a5: 73b5000000   | 	je checkb
+  0x0aa: 30f0bbbb0000 | 	irmovl $0xbbbb,%eax  # Failed test #1
+  0x0b0: 7077010000   | 	jmp cdone
+  0x0b5:              | checkb:
+                      | 	# Code length check
+  0x0b5: 30f093000000 | 	irmovl EndFun,%eax
+  0x0bb: 30f22f000000 | 	irmovl StartFun,%edx
+  0x0c1: 6120         | 	subl %edx,%eax
+  0x0c3: 30f2e8030000 | 	irmovl $1000,%edx
+  0x0c9: 6102         | 	subl %eax,%edx
+  0x0cb: 75db000000   | 	jge checkm
+  0x0d0: 30f0cccc0000 | 	irmovl $0xcccc,%eax  # Failed test #2
+  0x0d6: 7077010000   | 	jmp cdone
+  0x0db:              | checkm:
+  0x0db: 30f294050000 | 	irmovl dest, %edx # Pointer to next destination location
+  0x0e1: 30f384010000 | 	irmovl src,%ebx   # Pointer to next source location
+  0x0e7: 30f700010000 | 	irmovl $256,%edi  # Count
+  0x0ed: 6277         | 	andl %edi,%edi
+  0x0ef: 7329010000   | 	je checkpre         # Skip check if count = 0
+  0x0f4:              | mcloop:
+  0x0f4: 500200000000 | 	mrmovl (%edx),%eax
+  0x0fa: 506300000000 | 	mrmovl (%ebx),%esi
+  0x100: 6160         | 	subl %esi,%eax
+  0x102: 7312010000   | 	je  mok
+  0x107: 30f0dddd0000 | 	irmovl $0xdddd,%eax # Failed test #3
+  0x10d: 7077010000   | 	jmp cdone
+  0x112:              | mok:
+  0x112: 30f004000000 | 	irmovl $4,%eax
+  0x118: 6002         | 	addl %eax,%edx	  # dest ++
+  0x11a: 6003         | 	addl %eax,%ebx    # src++
+  0x11c: 30f001000000 | 	irmovl $1,%eax
+  0x122: 6107         | 	subl %eax,%edi    # cnt--
+  0x124: 76f4000000   | 	jg mcloop
+  0x129:              | checkpre:
+                      | 	# Check for corruption
+  0x129: 30f290050000 | 	irmovl Predest,%edx
+  0x12f: 500200000000 | 	mrmovl (%edx), %eax  # Get word before destination
+  0x135: 30f2fadebc00 | 	irmovl $0xbcdefa, %edx
+  0x13b: 6120         | 	subl %edx,%eax
+  0x13d: 734d010000   | 	je checkpost
+  0x142: 30f0eeee0000 | 	irmovl $0xeeee,%eax  # Failed test #4
+  0x148: 7077010000   | 	jmp cdone
+  0x14d:              | checkpost:
+                      | 	# Check for corruption
+  0x14d: 30f294090000 | 	irmovl Postdest,%edx
+  0x153: 500200000000 | 	mrmovl (%edx), %eax  # Get word after destination
+  0x159: 30f2bcfade00 | 	irmovl $0xdefabc, %edx
+  0x15f: 6120         | 	subl %edx,%eax
+  0x161: 7371010000   | 	je checkok
+  0x166: 30f0eeee0000 | 	irmovl $0xeeee,%eax # Failed test #4
+  0x16c: 7077010000   | 	jmp cdone
+  0x171:              | checkok:
+                      | 	# Successful checks
+  0x171: 30f0aaaa0000 | 	irmovl $0xaaaa,%eax
+  0x177:              | cdone:
+  0x177: b07f         | 	popl %edi
+  0x179: b03f         | 	popl %ebx
+  0x17b: b06f         | 	popl %esi
+  0x17d: 2054         | 	rrmovl %ebp, %esp
+  0x17f: b05f         | 	popl %ebp
+  0x181: 90           | 	ret
+                      | 
+                      | ###############################
+                      | # Source and destination blocks 
+                      | ###############################
+  0x184:              | 	.align 4
+  0x184:              | src:
+  0x184: ffffffff     | 	.long -1
+  0x188: feffffff     | 	.long -2
+  0x18c: 03000000     | 	.long 3
+  0x190: 04000000     | 	.long 4
+  0x194: 05000000     | 	.long 5
+  0x198: 06000000     | 	.long 6
+  0x19c: 07000000     | 	.long 7
+  0x1a0: 08000000     | 	.long 8
+  0x1a4: 09000000     | 	.long 9
+  0x1a8: f6ffffff     | 	.long -10
+  0x1ac: 0b000000     | 	.long 11
+  0x1b0: f4ffffff     | 	.long -12
+  0x1b4: 0d000000     | 	.long 13
+  0x1b8: f2ffffff     | 	.long -14
+  0x1bc: f1ffffff     | 	.long -15
+  0x1c0: 10000000     | 	.long 16
+  0x1c4: 11000000     | 	.long 17
+  0x1c8: eeffffff     | 	.long -18
+  0x1cc: 13000000     | 	.long 19
+  0x1d0: ecffffff     | 	.long -20
+  0x1d4: ebffffff     | 	.long -21
+  0x1d8: eaffffff     | 	.long -22
+  0x1dc: 17000000     | 	.long 23
+  0x1e0: 18000000     | 	.long 24
+  0x1e4: 19000000     | 	.long 25
+  0x1e8: 1a000000     | 	.long 26
+  0x1ec: e5ffffff     | 	.long -27
+  0x1f0: 1c000000     | 	.long 28
+  0x1f4: e3ffffff     | 	.long -29
+  0x1f8: e2ffffff     | 	.long -30
+  0x1fc: 1f000000     | 	.long 31
+  0x200: e0ffffff     | 	.long -32
+  0x204: 21000000     | 	.long 33
+  0x208: deffffff     | 	.long -34
+  0x20c: 23000000     | 	.long 35
+  0x210: 24000000     | 	.long 36
+  0x214: 25000000     | 	.long 37
+  0x218: daffffff     | 	.long -38
+  0x21c: 27000000     | 	.long 39
+  0x220: d8ffffff     | 	.long -40
+  0x224: d7ffffff     | 	.long -41
+  0x228: 2a000000     | 	.long 42
+  0x22c: 2b000000     | 	.long 43
+  0x230: d4ffffff     | 	.long -44
+  0x234: 2d000000     | 	.long 45
+  0x238: d2ffffff     | 	.long -46
+  0x23c: d1ffffff     | 	.long -47
+  0x240: d0ffffff     | 	.long -48
+  0x244: 31000000     | 	.long 49
+  0x248: ceffffff     | 	.long -50
+  0x24c: cdffffff     | 	.long -51
+  0x250: ccffffff     | 	.long -52
+  0x254: 35000000     | 	.long 53
+  0x258: caffffff     | 	.long -54
+  0x25c: 37000000     | 	.long 55
+  0x260: c8ffffff     | 	.long -56
+  0x264: 39000000     | 	.long 57
+  0x268: 3a000000     | 	.long 58
+  0x26c: 3b000000     | 	.long 59
+  0x270: 3c000000     | 	.long 60
+  0x274: c3ffffff     | 	.long -61
+  0x278: 3e000000     | 	.long 62
+  0x27c: c1ffffff     | 	.long -63
+  0x280: c0ffffff     | 	.long -64
+  0x284: 41000000     | 	.long 65
+  0x288: 42000000     | 	.long 66
+  0x28c: 43000000     | 	.long 67
+  0x290: bcffffff     | 	.long -68
+  0x294: bbffffff     | 	.long -69
+  0x298: baffffff     | 	.long -70
+  0x29c: b9ffffff     | 	.long -71
+  0x2a0: b8ffffff     | 	.long -72
+  0x2a4: 49000000     | 	.long 73
+  0x2a8: 4a000000     | 	.long 74
+  0x2ac: b5ffffff     | 	.long -75
+  0x2b0: b4ffffff     | 	.long -76
+  0x2b4: b3ffffff     | 	.long -77
+  0x2b8: 4e000000     | 	.long 78
+  0x2bc: 4f000000     | 	.long 79
+  0x2c0: 50000000     | 	.long 80
+  0x2c4: afffffff     | 	.long -81
+  0x2c8: 52000000     | 	.long 82
+  0x2cc: adffffff     | 	.long -83
+  0x2d0: 54000000     | 	.long 84
+  0x2d4: 55000000     | 	.long 85
+  0x2d8: aaffffff     | 	.long -86
+  0x2dc: a9ffffff     | 	.long -87
+  0x2e0: a8ffffff     | 	.long -88
+  0x2e4: 59000000     | 	.long 89
+  0x2e8: 5a000000     | 	.long 90
+  0x2ec: 5b000000     | 	.long 91
+  0x2f0: 5c000000     | 	.long 92
+  0x2f4: a3ffffff     | 	.long -93
+  0x2f8: 5e000000     | 	.long 94
+  0x2fc: 5f000000     | 	.long 95
+  0x300: a0ffffff     | 	.long -96
+  0x304: 61000000     | 	.long 97
+  0x308: 9effffff     | 	.long -98
+  0x30c: 9dffffff     | 	.long -99
+  0x310: 9cffffff     | 	.long -100
+  0x314: 9bffffff     | 	.long -101
+  0x318: 66000000     | 	.long 102
+  0x31c: 67000000     | 	.long 103
+  0x320: 68000000     | 	.long 104
+  0x324: 69000000     | 	.long 105
+  0x328: 96ffffff     | 	.long -106
+  0x32c: 95ffffff     | 	.long -107
+  0x330: 6c000000     | 	.long 108
+  0x334: 6d000000     | 	.long 109
+  0x338: 92ffffff     | 	.long -110
+  0x33c: 6f000000     | 	.long 111
+  0x340: 90ffffff     | 	.long -112
+  0x344: 71000000     | 	.long 113
+  0x348: 8effffff     | 	.long -114
+  0x34c: 73000000     | 	.long 115
+  0x350: 74000000     | 	.long 116
+  0x354: 75000000     | 	.long 117
+  0x358: 76000000     | 	.long 118
+  0x35c: 77000000     | 	.long 119
+  0x360: 88ffffff     | 	.long -120
+  0x364: 79000000     | 	.long 121
+  0x368: 7a000000     | 	.long 122
+  0x36c: 85ffffff     | 	.long -123
+  0x370: 7c000000     | 	.long 124
+  0x374: 7d000000     | 	.long 125
+  0x378: 7e000000     | 	.long 126
+  0x37c: 7f000000     | 	.long 127
+  0x380: 80000000     | 	.long 128
+  0x384: 81000000     | 	.long 129
+  0x388: 7effffff     | 	.long -130
+  0x38c: 83000000     | 	.long 131
+  0x390: 84000000     | 	.long 132
+  0x394: 85000000     | 	.long 133
+  0x398: 86000000     | 	.long 134
+  0x39c: 87000000     | 	.long 135
+  0x3a0: 78ffffff     | 	.long -136
+  0x3a4: 77ffffff     | 	.long -137
+  0x3a8: 8a000000     | 	.long 138
+  0x3ac: 75ffffff     | 	.long -139
+  0x3b0: 8c000000     | 	.long 140
+  0x3b4: 73ffffff     | 	.long -141
+  0x3b8: 8e000000     | 	.long 142
+  0x3bc: 71ffffff     | 	.long -143
+  0x3c0: 90000000     | 	.long 144
+  0x3c4: 91000000     | 	.long 145
+  0x3c8: 92000000     | 	.long 146
+  0x3cc: 6dffffff     | 	.long -147
+  0x3d0: 6cffffff     | 	.long -148
+  0x3d4: 6bffffff     | 	.long -149
+  0x3d8: 96000000     | 	.long 150
+  0x3dc: 69ffffff     | 	.long -151
+  0x3e0: 68ffffff     | 	.long -152
+  0x3e4: 67ffffff     | 	.long -153
+  0x3e8: 9a000000     | 	.long 154
+  0x3ec: 9b000000     | 	.long 155
+  0x3f0: 9c000000     | 	.long 156
+  0x3f4: 63ffffff     | 	.long -157
+  0x3f8: 62ffffff     | 	.long -158
+  0x3fc: 61ffffff     | 	.long -159
+  0x400: 60ffffff     | 	.long -160
+  0x404: a1000000     | 	.long 161
+  0x408: 5effffff     | 	.long -162
+  0x40c: 5dffffff     | 	.long -163
+  0x410: 5cffffff     | 	.long -164
+  0x414: 5bffffff     | 	.long -165
+  0x418: 5affffff     | 	.long -166
+  0x41c: a7000000     | 	.long 167
+  0x420: a8000000     | 	.long 168
+  0x424: a9000000     | 	.long 169
+  0x428: 56ffffff     | 	.long -170
+  0x42c: ab000000     | 	.long 171
+  0x430: ac000000     | 	.long 172
+  0x434: ad000000     | 	.long 173
+  0x438: ae000000     | 	.long 174
+  0x43c: af000000     | 	.long 175
+  0x440: b0000000     | 	.long 176
+  0x444: b1000000     | 	.long 177
+  0x448: 4effffff     | 	.long -178
+  0x44c: b3000000     | 	.long 179
+  0x450: 4cffffff     | 	.long -180
+  0x454: 4bffffff     | 	.long -181
+  0x458: 4affffff     | 	.long -182
+  0x45c: b7000000     | 	.long 183
+  0x460: b8000000     | 	.long 184
+  0x464: 47ffffff     | 	.long -185
+  0x468: ba000000     | 	.long 186
+  0x46c: 45ffffff     | 	.long -187
+  0x470: bc000000     | 	.long 188
+  0x474: bd000000     | 	.long 189
+  0x478: 42ffffff     | 	.long -190
+  0x47c: bf000000     | 	.long 191
+  0x480: c0000000     | 	.long 192
+  0x484: c1000000     | 	.long 193
+  0x488: c2000000     | 	.long 194
+  0x48c: 3dffffff     | 	.long -195
+  0x490: c4000000     | 	.long 196
+  0x494: 3bffffff     | 	.long -197
+  0x498: 3affffff     | 	.long -198
+  0x49c: c7000000     | 	.long 199
+  0x4a0: 38ffffff     | 	.long -200
+  0x4a4: c9000000     | 	.long 201
+  0x4a8: ca000000     | 	.long 202
+  0x4ac: 35ffffff     | 	.long -203
+  0x4b0: cc000000     | 	.long 204
+  0x4b4: cd000000     | 	.long 205
+  0x4b8: 32ffffff     | 	.long -206
+  0x4bc: cf000000     | 	.long 207
+  0x4c0: d0000000     | 	.long 208
+  0x4c4: d1000000     | 	.long 209
+  0x4c8: 2effffff     | 	.long -210
+  0x4cc: d3000000     | 	.long 211
+  0x4d0: 2cffffff     | 	.long -212
+  0x4d4: d5000000     | 	.long 213
+  0x4d8: 2affffff     | 	.long -214
+  0x4dc: d7000000     | 	.long 215
+  0x4e0: 28ffffff     | 	.long -216
+  0x4e4: d9000000     | 	.long 217
+  0x4e8: 26ffffff     | 	.long -218
+  0x4ec: db000000     | 	.long 219
+  0x4f0: 24ffffff     | 	.long -220
+  0x4f4: 23ffffff     | 	.long -221
+  0x4f8: 22ffffff     | 	.long -222
+  0x4fc: 21ffffff     | 	.long -223
+  0x500: e0000000     | 	.long 224
+  0x504: 1fffffff     | 	.long -225
+  0x508: 1effffff     | 	.long -226
+  0x50c: e3000000     | 	.long 227
+  0x510: e4000000     | 	.long 228
+  0x514: e5000000     | 	.long 229
+  0x518: 1affffff     | 	.long -230
+  0x51c: e7000000     | 	.long 231
+  0x520: e8000000     | 	.long 232
+  0x524: e9000000     | 	.long 233
+  0x528: ea000000     | 	.long 234
+  0x52c: 15ffffff     | 	.long -235
+  0x530: 14ffffff     | 	.long -236
+  0x534: 13ffffff     | 	.long -237
+  0x538: ee000000     | 	.long 238
+  0x53c: ef000000     | 	.long 239
+  0x540: 10ffffff     | 	.long -240
+  0x544: 0fffffff     | 	.long -241
+  0x548: 0effffff     | 	.long -242
+  0x54c: 0dffffff     | 	.long -243
+  0x550: 0cffffff     | 	.long -244
+  0x554: 0bffffff     | 	.long -245
+  0x558: f6000000     | 	.long 246
+  0x55c: 09ffffff     | 	.long -247
+  0x560: 08ffffff     | 	.long -248
+  0x564: f9000000     | 	.long 249
+  0x568: fa000000     | 	.long 250
+  0x56c: fb000000     | 	.long 251
+  0x570: fc000000     | 	.long 252
+  0x574: fd000000     | 	.long 253
+  0x578: 02ffffff     | 	.long -254
+  0x57c: 01ffffff     | 	.long -255
+  0x580: 00010000     | 	.long 256
+  0x584: fadebc00     | 	.long 0xbcdefa # This shouldn't get moved
+                      | 
+  0x590:              | 	.align 16
+  0x590:              | Predest:
+  0x590: fadebc00     | 	.long 0xbcdefa
+  0x594:              | dest:
+  0x594: abefcd00     | 	.long 0xcdefab
+  0x598: abefcd00     | 	.long 0xcdefab
+  0x59c: abefcd00     | 	.long 0xcdefab
+  0x5a0: abefcd00     | 	.long 0xcdefab
+  0x5a4: abefcd00     | 	.long 0xcdefab
+  0x5a8: abefcd00     | 	.long 0xcdefab
+  0x5ac: abefcd00     | 	.long 0xcdefab
+  0x5b0: abefcd00     | 	.long 0xcdefab
+  0x5b4: abefcd00     | 	.long 0xcdefab
+  0x5b8: abefcd00     | 	.long 0xcdefab
+  0x5bc: abefcd00     | 	.long 0xcdefab
+  0x5c0: abefcd00     | 	.long 0xcdefab
+  0x5c4: abefcd00     | 	.long 0xcdefab
+  0x5c8: abefcd00     | 	.long 0xcdefab
+  0x5cc: abefcd00     | 	.long 0xcdefab
+  0x5d0: abefcd00     | 	.long 0xcdefab
+  0x5d4: abefcd00     | 	.long 0xcdefab
+  0x5d8: abefcd00     | 	.long 0xcdefab
+  0x5dc: abefcd00     | 	.long 0xcdefab
+  0x5e0: abefcd00     | 	.long 0xcdefab
+  0x5e4: abefcd00     | 	.long 0xcdefab
+  0x5e8: abefcd00     | 	.long 0xcdefab
+  0x5ec: abefcd00     | 	.long 0xcdefab
+  0x5f0: abefcd00     | 	.long 0xcdefab
+  0x5f4: abefcd00     | 	.long 0xcdefab
+  0x5f8: abefcd00     | 	.long 0xcdefab
+  0x5fc: abefcd00     | 	.long 0xcdefab
+  0x600: abefcd00     | 	.long 0xcdefab
+  0x604: abefcd00     | 	.long 0xcdefab
+  0x608: abefcd00     | 	.long 0xcdefab
+  0x60c: abefcd00     | 	.long 0xcdefab
+  0x610: abefcd00     | 	.long 0xcdefab
+  0x614: abefcd00     | 	.long 0xcdefab
+  0x618: abefcd00     | 	.long 0xcdefab
+  0x61c: abefcd00     | 	.long 0xcdefab
+  0x620: abefcd00     | 	.long 0xcdefab
+  0x624: abefcd00     | 	.long 0xcdefab
+  0x628: abefcd00     | 	.long 0xcdefab
+  0x62c: abefcd00     | 	.long 0xcdefab
+  0x630: abefcd00     | 	.long 0xcdefab
+  0x634: abefcd00     | 	.long 0xcdefab
+  0x638: abefcd00     | 	.long 0xcdefab
+  0x63c: abefcd00     | 	.long 0xcdefab
+  0x640: abefcd00     | 	.long 0xcdefab
+  0x644: abefcd00     | 	.long 0xcdefab
+  0x648: abefcd00     | 	.long 0xcdefab
+  0x64c: abefcd00     | 	.long 0xcdefab
+  0x650: abefcd00     | 	.long 0xcdefab
+  0x654: abefcd00     | 	.long 0xcdefab
+  0x658: abefcd00     | 	.long 0xcdefab
+  0x65c: abefcd00     | 	.long 0xcdefab
+  0x660: abefcd00     | 	.long 0xcdefab
+  0x664: abefcd00     | 	.long 0xcdefab
+  0x668: abefcd00     | 	.long 0xcdefab
+  0x66c: abefcd00     | 	.long 0xcdefab
+  0x670: abefcd00     | 	.long 0xcdefab
+  0x674: abefcd00     | 	.long 0xcdefab
+  0x678: abefcd00     | 	.long 0xcdefab
+  0x67c: abefcd00     | 	.long 0xcdefab
+  0x680: abefcd00     | 	.long 0xcdefab
+  0x684: abefcd00     | 	.long 0xcdefab
+  0x688: abefcd00     | 	.long 0xcdefab
+  0x68c: abefcd00     | 	.long 0xcdefab
+  0x690: abefcd00     | 	.long 0xcdefab
+  0x694: abefcd00     | 	.long 0xcdefab
+  0x698: abefcd00     | 	.long 0xcdefab
+  0x69c: abefcd00     | 	.long 0xcdefab
+  0x6a0: abefcd00     | 	.long 0xcdefab
+  0x6a4: abefcd00     | 	.long 0xcdefab
+  0x6a8: abefcd00     | 	.long 0xcdefab
+  0x6ac: abefcd00     | 	.long 0xcdefab
+  0x6b0: abefcd00     | 	.long 0xcdefab
+  0x6b4: abefcd00     | 	.long 0xcdefab
+  0x6b8: abefcd00     | 	.long 0xcdefab
+  0x6bc: abefcd00     | 	.long 0xcdefab
+  0x6c0: abefcd00     | 	.long 0xcdefab
+  0x6c4: abefcd00     | 	.long 0xcdefab
+  0x6c8: abefcd00     | 	.long 0xcdefab
+  0x6cc: abefcd00     | 	.long 0xcdefab
+  0x6d0: abefcd00     | 	.long 0xcdefab
+  0x6d4: abefcd00     | 	.long 0xcdefab
+  0x6d8: abefcd00     | 	.long 0xcdefab
+  0x6dc: abefcd00     | 	.long 0xcdefab
+  0x6e0: abefcd00     | 	.long 0xcdefab
+  0x6e4: abefcd00     | 	.long 0xcdefab
+  0x6e8: abefcd00     | 	.long 0xcdefab
+  0x6ec: abefcd00     | 	.long 0xcdefab
+  0x6f0: abefcd00     | 	.long 0xcdefab
+  0x6f4: abefcd00     | 	.long 0xcdefab
+  0x6f8: abefcd00     | 	.long 0xcdefab
+  0x6fc: abefcd00     | 	.long 0xcdefab
+  0x700: abefcd00     | 	.long 0xcdefab
+  0x704: abefcd00     | 	.long 0xcdefab
+  0x708: abefcd00     | 	.long 0xcdefab
+  0x70c: abefcd00     | 	.long 0xcdefab
+  0x710: abefcd00     | 	.long 0xcdefab
+  0x714: abefcd00     | 	.long 0xcdefab
+  0x718: abefcd00     | 	.long 0xcdefab
+  0x71c: abefcd00     | 	.long 0xcdefab
+  0x720: abefcd00     | 	.long 0xcdefab
+  0x724: abefcd00     | 	.long 0xcdefab
+  0x728: abefcd00     | 	.long 0xcdefab
+  0x72c: abefcd00     | 	.long 0xcdefab
+  0x730: abefcd00     | 	.long 0xcdefab
+  0x734: abefcd00     | 	.long 0xcdefab
+  0x738: abefcd00     | 	.long 0xcdefab
+  0x73c: abefcd00     | 	.long 0xcdefab
+  0x740: abefcd00     | 	.long 0xcdefab
+  0x744: abefcd00     | 	.long 0xcdefab
+  0x748: abefcd00     | 	.long 0xcdefab
+  0x74c: abefcd00     | 	.long 0xcdefab
+  0x750: abefcd00     | 	.long 0xcdefab
+  0x754: abefcd00     | 	.long 0xcdefab
+  0x758: abefcd00     | 	.long 0xcdefab
+  0x75c: abefcd00     | 	.long 0xcdefab
+  0x760: abefcd00     | 	.long 0xcdefab
+  0x764: abefcd00     | 	.long 0xcdefab
+  0x768: abefcd00     | 	.long 0xcdefab
+  0x76c: abefcd00     | 	.long 0xcdefab
+  0x770: abefcd00     | 	.long 0xcdefab
+  0x774: abefcd00     | 	.long 0xcdefab
+  0x778: abefcd00     | 	.long 0xcdefab
+  0x77c: abefcd00     | 	.long 0xcdefab
+  0x780: abefcd00     | 	.long 0xcdefab
+  0x784: abefcd00     | 	.long 0xcdefab
+  0x788: abefcd00     | 	.long 0xcdefab
+  0x78c: abefcd00     | 	.long 0xcdefab
+  0x790: abefcd00     | 	.long 0xcdefab
+  0x794: abefcd00     | 	.long 0xcdefab
+  0x798: abefcd00     | 	.long 0xcdefab
+  0x79c: abefcd00     | 	.long 0xcdefab
+  0x7a0: abefcd00     | 	.long 0xcdefab
+  0x7a4: abefcd00     | 	.long 0xcdefab
+  0x7a8: abefcd00     | 	.long 0xcdefab
+  0x7ac: abefcd00     | 	.long 0xcdefab
+  0x7b0: abefcd00     | 	.long 0xcdefab
+  0x7b4: abefcd00     | 	.long 0xcdefab
+  0x7b8: abefcd00     | 	.long 0xcdefab
+  0x7bc: abefcd00     | 	.long 0xcdefab
+  0x7c0: abefcd00     | 	.long 0xcdefab
+  0x7c4: abefcd00     | 	.long 0xcdefab
+  0x7c8: abefcd00     | 	.long 0xcdefab
+  0x7cc: abefcd00     | 	.long 0xcdefab
+  0x7d0: abefcd00     | 	.long 0xcdefab
+  0x7d4: abefcd00     | 	.long 0xcdefab
+  0x7d8: abefcd00     | 	.long 0xcdefab
+  0x7dc: abefcd00     | 	.long 0xcdefab
+  0x7e0: abefcd00     | 	.long 0xcdefab
+  0x7e4: abefcd00     | 	.long 0xcdefab
+  0x7e8: abefcd00     | 	.long 0xcdefab
+  0x7ec: abefcd00     | 	.long 0xcdefab
+  0x7f0: abefcd00     | 	.long 0xcdefab
+  0x7f4: abefcd00     | 	.long 0xcdefab
+  0x7f8: abefcd00     | 	.long 0xcdefab
+  0x7fc: abefcd00     | 	.long 0xcdefab
+  0x800: abefcd00     | 	.long 0xcdefab
+  0x804: abefcd00     | 	.long 0xcdefab
+  0x808: abefcd00     | 	.long 0xcdefab
+  0x80c: abefcd00     | 	.long 0xcdefab
+  0x810: abefcd00     | 	.long 0xcdefab
+  0x814: abefcd00     | 	.long 0xcdefab
+  0x818: abefcd00     | 	.long 0xcdefab
+  0x81c: abefcd00     | 	.long 0xcdefab
+  0x820: abefcd00     | 	.long 0xcdefab
+  0x824: abefcd00     | 	.long 0xcdefab
+  0x828: abefcd00     | 	.long 0xcdefab
+  0x82c: abefcd00     | 	.long 0xcdefab
+  0x830: abefcd00     | 	.long 0xcdefab
+  0x834: abefcd00     | 	.long 0xcdefab
+  0x838: abefcd00     | 	.long 0xcdefab
+  0x83c: abefcd00     | 	.long 0xcdefab
+  0x840: abefcd00     | 	.long 0xcdefab
+  0x844: abefcd00     | 	.long 0xcdefab
+  0x848: abefcd00     | 	.long 0xcdefab
+  0x84c: abefcd00     | 	.long 0xcdefab
+  0x850: abefcd00     | 	.long 0xcdefab
+  0x854: abefcd00     | 	.long 0xcdefab
+  0x858: abefcd00     | 	.long 0xcdefab
+  0x85c: abefcd00     | 	.long 0xcdefab
+  0x860: abefcd00     | 	.long 0xcdefab
+  0x864: abefcd00     | 	.long 0xcdefab
+  0x868: abefcd00     | 	.long 0xcdefab
+  0x86c: abefcd00     | 	.long 0xcdefab
+  0x870: abefcd00     | 	.long 0xcdefab
+  0x874: abefcd00     | 	.long 0xcdefab
+  0x878: abefcd00     | 	.long 0xcdefab
+  0x87c: abefcd00     | 	.long 0xcdefab
+  0x880: abefcd00     | 	.long 0xcdefab
+  0x884: abefcd00     | 	.long 0xcdefab
+  0x888: abefcd00     | 	.long 0xcdefab
+  0x88c: abefcd00     | 	.long 0xcdefab
+  0x890: abefcd00     | 	.long 0xcdefab
+  0x894: abefcd00     | 	.long 0xcdefab
+  0x898: abefcd00     | 	.long 0xcdefab
+  0x89c: abefcd00     | 	.long 0xcdefab
+  0x8a0: abefcd00     | 	.long 0xcdefab
+  0x8a4: abefcd00     | 	.long 0xcdefab
+  0x8a8: abefcd00     | 	.long 0xcdefab
+  0x8ac: abefcd00     | 	.long 0xcdefab
+  0x8b0: abefcd00     | 	.long 0xcdefab
+  0x8b4: abefcd00     | 	.long 0xcdefab
+  0x8b8: abefcd00     | 	.long 0xcdefab
+  0x8bc: abefcd00     | 	.long 0xcdefab
+  0x8c0: abefcd00     | 	.long 0xcdefab
+  0x8c4: abefcd00     | 	.long 0xcdefab
+  0x8c8: abefcd00     | 	.long 0xcdefab
+  0x8cc: abefcd00     | 	.long 0xcdefab
+  0x8d0: abefcd00     | 	.long 0xcdefab
+  0x8d4: abefcd00     | 	.long 0xcdefab
+  0x8d8: abefcd00     | 	.long 0xcdefab
+  0x8dc: abefcd00     | 	.long 0xcdefab
+  0x8e0: abefcd00     | 	.long 0xcdefab
+  0x8e4: abefcd00     | 	.long 0xcdefab
+  0x8e8: abefcd00     | 	.long 0xcdefab
+  0x8ec: abefcd00     | 	.long 0xcdefab
+  0x8f0: abefcd00     | 	.long 0xcdefab
+  0x8f4: abefcd00     | 	.long 0xcdefab
+  0x8f8: abefcd00     | 	.long 0xcdefab
+  0x8fc: abefcd00     | 	.long 0xcdefab
+  0x900: abefcd00     | 	.long 0xcdefab
+  0x904: abefcd00     | 	.long 0xcdefab
+  0x908: abefcd00     | 	.long 0xcdefab
+  0x90c: abefcd00     | 	.long 0xcdefab
+  0x910: abefcd00     | 	.long 0xcdefab
+  0x914: abefcd00     | 	.long 0xcdefab
+  0x918: abefcd00     | 	.long 0xcdefab
+  0x91c: abefcd00     | 	.long 0xcdefab
+  0x920: abefcd00     | 	.long 0xcdefab
+  0x924: abefcd00     | 	.long 0xcdefab
+  0x928: abefcd00     | 	.long 0xcdefab
+  0x92c: abefcd00     | 	.long 0xcdefab
+  0x930: abefcd00     | 	.long 0xcdefab
+  0x934: abefcd00     | 	.long 0xcdefab
+  0x938: abefcd00     | 	.long 0xcdefab
+  0x93c: abefcd00     | 	.long 0xcdefab
+  0x940: abefcd00     | 	.long 0xcdefab
+  0x944: abefcd00     | 	.long 0xcdefab
+  0x948: abefcd00     | 	.long 0xcdefab
+  0x94c: abefcd00     | 	.long 0xcdefab
+  0x950: abefcd00     | 	.long 0xcdefab
+  0x954: abefcd00     | 	.long 0xcdefab
+  0x958: abefcd00     | 	.long 0xcdefab
+  0x95c: abefcd00     | 	.long 0xcdefab
+  0x960: abefcd00     | 	.long 0xcdefab
+  0x964: abefcd00     | 	.long 0xcdefab
+  0x968: abefcd00     | 	.long 0xcdefab
+  0x96c: abefcd00     | 	.long 0xcdefab
+  0x970: abefcd00     | 	.long 0xcdefab
+  0x974: abefcd00     | 	.long 0xcdefab
+  0x978: abefcd00     | 	.long 0xcdefab
+  0x97c: abefcd00     | 	.long 0xcdefab
+  0x980: abefcd00     | 	.long 0xcdefab
+  0x984: abefcd00     | 	.long 0xcdefab
+  0x988: abefcd00     | 	.long 0xcdefab
+  0x98c: abefcd00     | 	.long 0xcdefab
+  0x990: abefcd00     | 	.long 0xcdefab
+  0x994:              | Postdest:
+  0x994: bcfade00     | 	.long 0xdefabc
+                      | 
+  0x998:              | .align 4
+                      | # Run time stack
+  0x998: 00000000     | 	.long 0
+  0x99c: 00000000     | 	.long 0
+  0x9a0: 00000000     | 	.long 0
+  0x9a4: 00000000     | 	.long 0
+  0x9a8: 00000000     | 	.long 0
+  0x9ac: 00000000     | 	.long 0
+  0x9b0: 00000000     | 	.long 0
+  0x9b4: 00000000     | 	.long 0
+  0x9b8: 00000000     | 	.long 0
+  0x9bc: 00000000     | 	.long 0
+  0x9c0: 00000000     | 	.long 0
+  0x9c4: 00000000     | 	.long 0
+  0x9c8: 00000000     | 	.long 0
+  0x9cc: 00000000     | 	.long 0
+  0x9d0: 00000000     | 	.long 0
+  0x9d4: 00000000     | 	.long 0
+                      | 
+  0x9d8:              | Stack:
